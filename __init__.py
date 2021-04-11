@@ -61,10 +61,12 @@ class NODELABEL_OT_nodelabel(bpy.types.Operator):
         context.active_node.label = self.txt_buffer
         return {"FINISHED"}
 
-def first_linked_output(node):
+def linked_output_socket_names(node):
+    names = []
     for output in node.outputs:
         for link in output.links:
-            return link.to_socket.name
+            names.append(link.to_socket.name)
+    return names
         
 
 @_
@@ -75,10 +77,20 @@ class NODELABEL_OT_from_upstream_socket(bpy.types.Operator):
 
     @classmethod
     def poll(self,context):
-        if context.active_node:
-            return first_linked_output(context.active_node)
+        return context.active_node and linked_output_socket_names(context.active_node)
     def execute(self,context):
-        context.active_node.label = first_linked_output(context.active_node)
+        node = context.active_node
+        names = linked_output_socket_names(node) 
+        total = len(names)
+        if node.label not in names:
+            node.label = names[0]
+        elif total > 1:
+            cur_index = names.index(node.label)
+            next_index = (cur_index + 1) % total
+            node.label = names[next_index]
+        else:
+            node.label = names[0]
+
         return {"FINISHED"}
 
 
